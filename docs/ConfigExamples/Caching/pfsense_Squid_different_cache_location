@@ -1,0 +1,59 @@
+Add the following code to a script file and set up a cron to utalize it  @reboot /root/mount_squid_nullfs.sh
+
+What this code does it creare a overlay with nullfs and mounts a nvme drive to that location. Inside of pfsense the path /var/squid/cache is linked to any path you need.
+It works again the clear cache now button still does not work. But it is a start as it will write and utalize the cache it just cant delete or use clear cache now. 
+
+#!/bin/sh
+
+TAG="squid-nullfs"
+NVME_DEV="/dev/nda0p2"
+NVME_MNT="/nvme/LOGS_Optane"
+CACHE_SRC="${NVME_MNT}/Squid_Cache"
+CACHE_DST="/var/squid/cache"
+
+# --- Helper function to log safely to system.log using pfSense PHP ---
+log_sys() {
+    MESSAGE="$1"
+    logger -t "$TAG" "$MESSAGE"
+}
+
+log_sys "Starting Squid nullfs mount sequence"
+
+# 1. Ensure NVMe filesystem is mounted
+if ! mount | grep -q "on ${NVME_MNT} "; then
+    log_sys "Mounting NVMe filesystem"
+    mount_msdosfs "${NVME_DEV}" "${NVME_MNT}" || {
+        log_sys "ERROR: NVMe mount failed"
+        exit 1
+    }
+else
+    log_sys "NVMe already mounted"
+fi
+
+# 2. Stop squid if running
+if pgrep -x squid >/dev/null; then
+    log_sys "Stopping squid"
+    /usr/local/sbin/pfSsh.php playback svc stop squid
+    sleep 2
+fi
+
+# 3. Ensure directories exist
+mkdir -p "${CACHE_SRC}" "${CACHE_DST}"
+
+# 4. Mount nullfs if not already mounted
+if ! mount | grep -q "on ${CACHE_DST} "; then
+    log_sys "Mounting nullfs cache"
+    mount -t nullfs "${CACHE_SRC}" "${CACHE_DST}" || {
+        log_sys "ERROR: nullfs mount failed"
+        exit 1
+    }
+else
+    log_sys "nullfs already mounted"
+fi
+
+# 5. Start squid
+log_sys "Starting squid"
+/usr/local/sbin/pfSsh.php playback svc start squid
+
+log_sys "Squid nullfs mount completed"
+
