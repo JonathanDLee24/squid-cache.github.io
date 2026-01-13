@@ -13,9 +13,9 @@ This script is intended for Netgate pfSense systems where Squid’s cache is nor
 When an alternate drive or filesystem (such as NVMe storage) is used for caching, management becomes more complex. In particular, the pfSense Clear Cache function does not operate correctly, requiring manual deletion of cache files.
 This script was created to simplify cache relocation by overlaying the default Squid cache path with a different storage location, while maintaining compatibility with pfSense’s expected directory structure.
 
-## add cron file
+## Add the cron file
 		@reboot /root/mount_squid_nullfs.sh
-
+or what ever path you use to the script file also it must be made execuateable. 
 ## Script .sh file used for cron job
 
 		#!/bin/sh
@@ -72,6 +72,9 @@ This script was created to simplify cache relocation by overlaying the default S
 		
 		log_sys "Squid nullfs mount completed"
 		
-## Testing should show a valid mount on reboot in logs 
-<img width="690" height="226" alt="Screenshot 2026-01-12 at 14 56 06" src="https://github.com/user-attachments/assets/f770a6e0-b799-47dc-89fc-d5a05e25aef5" />
-
+## Testing should show a valid mount on reboot in standard system logs 
+		Squid nullfs mount completed
+		Starting squid
+		Mounting nullfs cache
+		Mounting NVMe filesystem
+		Starting Squid nullfs mount sequence
